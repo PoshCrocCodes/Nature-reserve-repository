@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Order #{{ order.pk }} — Greenfield Local Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <a href="{% url 'orders:order_list' %}" class="text-sm text-glh-grey hover:text-glh-green mb-1 inline-block">← Back to orders</a>
+      <h1 class="font-heading text-3xl text-glh-navy">Order #{{ order.pk }}</h1>
+      <p class="text-gray-500 text-sm mt-1">Placed on {{ order.created_at|date:"l, j F Y" }}</p>
+    </div>
+
+    <!-- Cancel / Reschedule actions -->
+    {% if order.is_cancellable %}
+      <div class="flex gap-3">
+        <button onclick="document.getElementById('reschedule-modal').classList.remove('hidden')"
+                class="border border-glh-blue text-glh-blue hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          Reschedule
+        </button>
+        <form method="post" action="{% url 'orders:cancel_order' pk=order.pk %}"
+              onsubmit="return confirm('Are you sure you want to cancel this order?')">
+          {% csrf_token %}
+          <button type="submit"
+                  class="border border-red-400 text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            Cancel Order
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- =========================================================================
+       ORDER TRACKING PROGRESS BAR
+       ========================================================================= -->
+  {% if order.status != 'cancelled' %}
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8" aria-labelledby="tracking-heading">
+      <h2 id="tracking-heading" class="font-heading text-xl text-glh-navy mb-6">Order Tracking</h2>
+
+      <!-- Step labels -->
+      <div class="relative">
+        <!-- Background track -->
+        <div class="absolute top-5 left-0 right-0 h-1 bg-gray-200 rounded-full mx-8" aria-hidden="true"></div>
+        <!-- Filled track -->
+        <div class="absolute top-5 left-0 h-1 bg-glh-green rounded-full mx-8 transition-all duration-700"
+             style="width: {{ progress_percentage }}%;"
+             aria-hidden="true"></div>
+
+        <!-- Steps -->
+        <div class="relative flex justify-between" role="list" aria-label="Order progress">
+          {% for step in progress_steps %}
+            {% with step_index=forloop.counter0 %}
+              <div class="flex flex-col items-center w-16 sm:w-auto" role="listitem">
+                <div class="w-10 h-10 rounded-full border-2 flex items-center justify-center z-10 transition-all duration-300
+                  {% if step_index <= current_step_index %}
+                    bg-glh-green border-glh-green text-white
+                  {% else %}
+                    bg-white border-gray-300 text-gray-400
+                  {% endif %}"
+                  {% if step_index == current_step_index %}aria-current="step"{% endif %}>
+
+                  {% if step_index < current_step_index %}
+                    <!-- Completed check -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  {% elif step_index == current_step_index %}
+                    <!-- Active dot -->
+                    <div class="w-3 h-3 bg-white rounded-full" aria-hidden="true"></div>
+                  {% else %}
+                    <!-- Future step number -->
+                    <span class="text-xs font-bold" aria-hidden="true">{{ forloop.counter }}</span>
+                  {% endif %}
+                </div>
+                <p class="text-xs text-center mt-2 leading-tight
+                  {% if step_index == current_step_index %}text-glh-green font-semibold
+                  {% elif step_index < current_step_index %}text-gray-500
+                  {% else %}text-gray-400{% endif %}"
+                   style="max-width: 80px;">
+                  {{ progress_step_labels|get_item:step|default:step|title }}
+                </p>
+              </div>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Progress percentage bar (secondary visual) -->
+      <div class="mt-8">
+        <div class="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Progress</span>
+          <span>{{ progress_percentage }}%</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-3" role="progressbar"
+             aria-valuenow="{{ progress_percentage }}"
+             aria-valuemin="0"
+             aria-valuemax="100"
+             aria-label="Order progress: {{ progress_percentage }}% complete">
+          <div class="bg-glh-green h-3 rounded-full transition-all duration-700"
+               style="width: {{ progress_percentage }}%"></div>
+        </div>
+      </div>
+
+      <!-- Scheduled date/slot -->
+      {% if order.scheduled_date %}
+        <div class="mt-6 bg-glh-green-pale rounded-xl p-4 text-sm">
+          <p class="font-semibold text-glh-navy">
+            📅 Scheduled: {{ order.scheduled_date|date:"l, j F Y" }}
+            {% if order.scheduled_time_slot %}— {{ order.scheduled_time_slot }}{% endif %}
+          </p>
+        </div>
+      {% endif %}
+    </section>
+
+  {% else %}
+    <!-- Cancelled state -->
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6 mb-8 text-center">
+      <p class="text-red-700 font-heading text-xl">This order has been cancelled.</p>
+    </div>
+  {% endif %}
+
+  <!-- =========================================================================
+       ORDER SUMMARY
+       ========================================================================= -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+    <!-- Fulfilment info -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" aria-labelledby="fulfilment-heading">
+      <h2 id="fulfilment-heading" class="font-semibold text-glh-navy text-sm uppercase tracking-wide mb-3">Fulfilment</h2>
+      <p class="text-sm font-medium text-gray-700">{{ order.get_fulfilment_display }}</p>
+      {% if order.fulfilment == 'delivery' %}
+        <address class="text-sm text-gray-500 mt-2 not-italic leading-relaxed">
+          {{ order.delivery_address_line_1 }}{% if order.delivery_address_line_2 %},<br>{{ order.delivery_address_line_2 }}{% endif %}<br>
+          {{ order.delivery_town_city }}{% if order.delivery_county %}, {{ order.delivery_county }}{% endif %}<br>
+          {{ order.delivery_postcode }}
+        </address>
+      {% else %}
+        <p class="text-sm text-gray-500 mt-1">Collection from Greenfield Local Hub</p>
+      {% endif %}
+    </section>
+
+    <!-- Pricing -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" aria-labelledby="pricing-heading">
+      <h2 id="pricing-heading" class="font-semibold text-glh-navy text-sm uppercase tracking-wide mb-3">Payment</h2>
+      <dl class="space-y-1 text-sm">
+        <div class="flex justify-between">
+          <dt class="text-gray-500">Subtotal</dt>
+          <dd class="font-medium">£{{ order.subtotal }}</dd>
+        </div>
+        {% if order.delivery_charge %}
+          <div class="flex justify-between">
+            <dt class="text-gray-500">Delivery</dt>
+            <dd class="font-medium">£{{ order.delivery_charge }}</dd>
+          </div>
+        {% endif %}
+        {% if order.discount_amount %}
+          <div class="flex justify-between text-green-700">
+            <dt>Loyalty Discount</dt>
+            <dd>−£{{ order.discount_amount }}</dd>
+          </div>
+        {% endif %}
+        <div class="flex justify-between border-t pt-1 mt-1">
+          <dt class="font-bold text-glh-navy">Total</dt>
+          <dd class="font-bold text-glh-navy">£{{ order.total }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Loyalty points -->
+    <section class="bg-glh-navy rounded-2xl p-5 text-white" aria-labelledby="loyalty-order-heading">
+      <h2 id="loyalty-order-heading" class="font-semibold text-gray-300 text-sm uppercase tracking-wide mb-3">Loyalty Points</h2>
+      {% if order.loyalty_points_awarded %}
+        <p class="text-3xl font-bold text-glh-green-light">+{{ order.loyalty_points_awarded }}</p>
+        <p class="text-xs text-gray-400 mt-1">points earned from this order</p>
+      {% else %}
+        <p class="text-gray-400 text-sm">No points awarded for cancelled orders.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Order items -->
+  <section class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6" aria-labelledby="items-heading">
+    <h2 id="items-heading" class="font-heading text-xl text-glh-navy mb-5">Items in this Order</h2>
+    <div class="space-y-4">
+      {% for item in order.items.all %}
+        <div class="flex items-center gap-4 py-3 border-b border-gray-100 last:border-0">
+          {% if item.product.image %}
+            <img src="{{ item.product.image.url }}"
+                 alt="{{ item.product.name }}"
+                 class="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+          {% else %}
+            <div class="w-16 h-16 bg-glh-green-pale rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <svg class="w-8 h-8 text-glh-green opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+              </svg>
+            </div>
+          {% endif %}
+          <div class="flex-1">
+            <a href="{{ item.product.get_absolute_url }}"
+               class="font-semibold text-glh-navy hover:text-glh-green text-sm">{{ item.product.name }}</a>
+            <p class="text-xs text-gray-500">{{ item.product.producer.business_name }}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium text-gray-700">{{ item.quantity }} × £{{ item.unit_price }}</p>
+            <p class="text-sm font-bold text-glh-navy">£{{ item.line_total }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+
+<!-- =========================================================================
+     RESCHEDULE MODAL
+     ========================================================================= -->
+{% if order.is_cancellable %}
+  <div id="reschedule-modal"
+       class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="reschedule-modal-title">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="reschedule-modal-title" class="font-heading text-xl text-glh-navy">Reschedule Order</h2>
+        <button onclick="document.getElementById('reschedule-modal').classList.add('hidden')"
+                class="text-gray-400 hover:text-gray-700"
+                aria-label="Close reschedule dialog">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'orders:reschedule_order' pk=order.pk %}">
+        {% csrf_token %}
+        <div class="mb-4">
+          <label for="scheduled-date" class="block text-sm font-medium text-gray-700 mb-1">
+            Preferred Date
+          </label>
+          <input type="date"
+                 id="scheduled-date"
+                 name="scheduled_date"
+                 value="{{ order.scheduled_date|date:'Y-m-d'|default:'' }}"
+                 min="{% now 'Y-m-d' %}"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-glh-green focus:border-transparent" />
+        </div>
+        <div class="mb-6">
+          <label for="time-slot" class="block text-sm font-medium text-gray-700 mb-1">
+            Preferred Time Slot
+          </label>
+          <select id="time-slot" name="time_slot"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-glh-green focus:border-transparent">
+            <option value="">Any time</option>
+            <option value="09:00 – 11:00" {% if order.scheduled_time_slot == '09:00 – 11:00' %}selected{% endif %}>09:00 – 11:00</option>
+            <option value="11:00 – 13:00" {% if order.scheduled_time_slot == '11:00 – 13:00' %}selected{% endif %}>11:00 – 13:00</option>
+            <option value="13:00 – 15:00" {% if order.scheduled_time_slot == '13:00 – 15:00' %}selected{% endif %}>13:00 – 15:00</option>
+            <option value="15:00 – 17:00" {% if order.scheduled_time_slot == '15:00 – 17:00' %}selected{% endif %}>15:00 – 17:00</option>
+          </select>
+        </div>
+        <div class="flex gap-3">
+          <button type="button"
+                  onclick="document.getElementById('reschedule-modal').classList.add('hidden')"
+                  class="flex-1 border border-gray-300 text-gray-600 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="flex-1 bg-glh-green hover:bg-glh-green-light text-white py-2.5 rounded-lg text-sm font-semibold transition-colors">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

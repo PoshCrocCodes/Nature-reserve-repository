@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Greenfield Local Hub — fresh, locally grown food and drink from Lancashire's finest producers." />
+  <title>{% block title %}Greenfield Local Hub{% endblock %}</title>
+
+  <!-- Tailwind CSS via CDN (swap for compiled build in production) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts — 'Playfair Display' for headings (farm / British feel), 'Inter' for body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Custom site CSS -->
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/main.css' %}" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'glh-green':   '#2d6a4f',
+            'glh-green-light': '#52b788',
+            'glh-green-pale':  '#d8f3dc',
+            'glh-navy':    '#1b2a4a',
+            'glh-blue':    '#2c4a7c',
+            'glh-grey':    '#6b7280',
+            'glh-light':   '#f8f9fa',
+          },
+          fontFamily: {
+            heading: ['"Playfair Display"', 'Georgia', 'serif'],
+            body:    ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="font-body bg-glh-light text-gray-800 flex flex-col min-h-screen">
+
+  <!-- Skip to content link for screen readers (WCAG 2.1 AA) -->
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 bg-glh-green text-white px-4 py-2 rounded z-50">
+    Skip to main content
+  </a>
+
+  <!-- =====================================================================
+       NAVIGATION BAR
+       ===================================================================== -->
+  <nav class="bg-glh-navy shadow-md sticky top-0 z-40" role="navigation" aria-label="Main navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Logo / Brand -->
+        <a href="{% url 'products:home' %}" class="flex items-center gap-2 text-white hover:text-glh-green-light transition-colors" aria-label="Greenfield Local Hub home">
+          <!-- Simple SVG leaf icon — no copyright issues -->
+          <svg class="w-8 h-8 text-glh-green-light" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M17 8C8 10 5.9 16.17 3.82 19H5.1C7 17 9 15 12 13.5c-2 3-4.5 5-5 7h1.5c1.5-3 3.5-5 6.5-6.5C13.5 17 12 20 12 22h1.5c1-4 3-6 5-8-1 4-1 6.5 0 8H20c-2-4-1-8 0-11-3 1.5-5 3-6 5 1-4 3-7 3-8z"/>
+          </svg>
+          <span class="font-heading text-lg font-bold tracking-wide">Greenfield Local Hub</span>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <div class="hidden md:flex items-center gap-6" role="menubar">
+          <a href="{% url 'products:product_list' %}" class="text-gray-300 hover:text-white transition-colors text-sm font-medium" role="menuitem">Shop</a>
+          <a href="{% url 'accounts:producer_list' %}" class="text-gray-300 hover:text-white transition-colors text-sm font-medium" role="menuitem">Our Producers</a>
+
+          {% if user.is_authenticated %}
+            <!-- Cart icon with badge -->
+            <a href="{% url 'orders:cart' %}" class="relative text-gray-300 hover:text-white transition-colors" aria-label="Basket, {{ cart_count }} item{% if cart_count != 1 %}s{% endif %}">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4z"/>
+              </svg>
+              {% if cart_count > 0 %}
+                <span class="absolute -top-2 -right-2 bg-glh-green text-white text-xs w-5 h-5 rounded-full flex items-center justify-center" aria-hidden="true">{{ cart_count }}</span>
+              {% endif %}
+            </a>
+
+            <!-- Account dropdown -->
+            <div class="relative" x-data="{ open: false }">
+              <button onclick="toggleDropdown(this)"
+                      class="flex items-center gap-1 text-gray-300 hover:text-white text-sm font-medium transition-colors"
+                      aria-haspopup="true" aria-expanded="false">
+                {{ user.first_name|default:user.username }}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              <div id="account-dropdown"
+                   class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-100"
+                   role="menu">
+                <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-glh-green-pale" role="menuitem">My Profile</a>
+                <a href="{% url 'orders:order_list' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-glh-green-pale" role="menuitem">My Orders</a>
+                {% if user.is_staff or user.producer_profile %}
+                  <hr class="my-1" />
+                  <a href="{% url 'accounts:producer_dashboard' %}" class="block px-4 py-2 text-sm text-glh-green font-semibold hover:bg-glh-green-pale" role="menuitem">Producer Dashboard</a>
+                {% endif %}
+                <hr class="my-1" />
+                <form method="post" action="{% url 'accounts:logout' %}">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">Sign Out</button>
+                </form>
+              </div>
+            </div>
+
+          {% else %}
+            <a href="{% url 'accounts:login' %}" class="text-gray-300 hover:text-white text-sm font-medium transition-colors">Sign In</a>
+            <a href="{% url 'accounts:register' %}"
+               class="bg-glh-green hover:bg-glh-green-light text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              Register
+            </a>
+          {% endif %}
+        </div>
+
+        <!-- Mobile menu button -->
+        <button id="mobile-menu-btn"
+                class="md:hidden text-gray-300 hover:text-white p-2 rounded"
+                aria-controls="mobile-menu"
+                aria-expanded="false"
+                aria-label="Toggle mobile menu">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-glh-navy border-t border-blue-900" role="menu">
+      <div class="px-4 py-4 space-y-2">
+        <a href="{% url 'products:product_list' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">Shop</a>
+        <a href="{% url 'accounts:producer_list' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">Our Producers</a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'orders:cart' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">Basket ({{ cart_count }})</a>
+          <a href="{% url 'accounts:profile' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">My Profile</a>
+          <a href="{% url 'orders:order_list' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">My Orders</a>
+          {% if user.is_staff or user.producer_profile %}
+            <a href="{% url 'accounts:producer_dashboard' %}" class="block text-glh-green-light py-2 text-sm font-semibold" role="menuitem">Producer Dashboard</a>
+          {% endif %}
+          <form method="post" action="{% url 'accounts:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="block text-red-400 py-2 text-sm w-full text-left" role="menuitem">Sign Out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="block text-gray-300 hover:text-white py-2 text-sm" role="menuitem">Sign In</a>
+          <a href="{% url 'accounts:register' %}" class="block text-glh-green-light font-semibold py-2 text-sm" role="menuitem">Register</a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- =====================================================================
+       DJANGO MESSAGES / ALERTS
+       ===================================================================== -->
+  {% if messages %}
+    <div class="max-w-7xl mx-auto px-4 pt-4 space-y-2" role="alert" aria-live="polite">
+      {% for message in messages %}
+        <div class="flex items-start gap-3 px-4 py-3 rounded-lg border
+          {% if message.tags == 'success' %}bg-green-50 border-green-300 text-green-800
+          {% elif message.tags == 'error' %}bg-red-50 border-red-300 text-red-800
+          {% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-300 text-yellow-800
+          {% else %}bg-blue-50 border-blue-300 text-blue-800{% endif %}">
+          <span class="flex-1 text-sm">{{ message }}</span>
+          <button onclick="this.parentElement.remove()" class="text-current opacity-60 hover:opacity-100 ml-2" aria-label="Dismiss">✕</button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- =====================================================================
+       MAIN CONTENT
+       ===================================================================== -->
+  <main id="main-content" class="flex-1" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- =====================================================================
+       FOOTER
+       ===================================================================== -->
+  <footer class="bg-glh-navy text-gray-300 mt-16" role="contentinfo">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+
+        <!-- Brand -->
+        <div class="md:col-span-1">
+          <h2 class="font-heading text-white text-xl mb-3">Greenfield Local Hub</h2>
+          <p class="text-sm text-gray-400 leading-relaxed">
+            Supporting local farmers and food producers across Lancashire. Fresh, honest, and traceable food — straight from the field to your door.
+          </p>
+        </div>
+
+        <!-- Shop -->
+        <div>
+          <h3 class="font-semibold text-white mb-3 text-sm uppercase tracking-wider">Shop</h3>
+          <ul class="space-y-2 text-sm">
+            <li><a href="{% url 'products:product_list' %}" class="hover:text-white transition-colors">All Products</a></li>
+            <li><a href="{% url 'accounts:producer_list' %}" class="hover:text-white transition-colors">Our Producers</a></li>
+            <li><a href="{% url 'orders:cart' %}" class="hover:text-white transition-colors">My Basket</a></li>
+          </ul>
+        </div>
+
+        <!-- Account -->
+        <div>
+          <h3 class="font-semibold text-white mb-3 text-sm uppercase tracking-wider">Account</h3>
+          <ul class="space-y-2 text-sm">
+            {% if user.is_authenticated %}
+              <li><a href="{% url 'accounts:profile' %}" class="hover:text-white transition-colors">My Profile</a></li>
+              <li><a href="{% url 'orders:order_list' %}" class="hover:text-white transition-colors">Order History</a></li>
+            {% else %}
+              <li><a href="{% url 'accounts:register' %}" class="hover:text-white transition-colors">Create Account</a></li>
+              <li><a href="{% url 'accounts:login' %}" class="hover:text-white transition-colors">Sign In</a></li>
+            {% endif %}
+          </ul>
+        </div>
+
+        <!-- Legal -->
+        <div>
+          <h3 class="font-semibold text-white mb-3 text-sm uppercase tracking-wider">Legal</h3>
+          <ul class="space-y-2 text-sm">
+            <li><a href="{% url 'privacy_policy' %}" class="hover:text-white transition-colors">Privacy Policy</a></li>
+            <li><a href="{% url 'accessibility' %}" class="hover:text-white transition-colors">Accessibility</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="border-t border-blue-900 mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-gray-500">
+        <p>© {% now "Y" %} Greenfield Local Hub. All rights reserved.</p>
+        <p>Registered Cooperative · Lancashire, England</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =====================================================================
+       MAIN JAVASCRIPT
+       ===================================================================== -->
+  <script src="{% static 'js/main.js' %}"></script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

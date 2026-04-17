@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}My Basket — Greenfield Local Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+  <h1 class="font-heading text-3xl text-glh-navy mb-8">My Basket</h1>
+
+  {% if cart_items %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Cart items -->
+      <section class="lg:col-span-2 space-y-4" aria-labelledby="cart-items-heading">
+        <h2 id="cart-items-heading" class="sr-only">Basket items</h2>
+
+        {% for item in cart_items %}
+          <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-4">
+            <!-- Product image -->
+            {% if item.product.image %}
+              <img src="{{ item.product.image.url }}"
+                   alt="{{ item.product.name }}"
+                   class="w-20 h-20 rounded-xl object-cover flex-shrink-0" />
+            {% else %}
+              <div class="w-20 h-20 bg-glh-green-pale rounded-xl flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                <svg class="w-8 h-8 text-glh-green opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+              </div>
+            {% endif %}
+
+            <!-- Details -->
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-glh-navy truncate">
+                <a href="{{ item.product.get_absolute_url }}" class="hover:text-glh-green">{{ item.product.name }}</a>
+              </h3>
+              <p class="text-xs text-gray-500">{{ item.product.producer.business_name }}</p>
+              <p class="text-sm font-medium text-glh-navy mt-1">£{{ item.product.price }} {{ item.product.get_unit_display }}</p>
+            </div>
+
+            <!-- Quantity control -->
+            <form method="post" action="{% url 'orders:update_cart' pk=item.pk %}" class="flex items-center gap-2">
+              {% csrf_token %}
+              <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                <button type="button"
+                        onclick="decrementQty(this)"
+                        class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                        aria-label="Decrease quantity of {{ item.product.name }}">−</button>
+                <input type="number"
+                       name="quantity"
+                       value="{{ item.quantity }}"
+                       min="1"
+                       max="{{ item.product.stock_quantity }}"
+                       class="w-10 h-8 text-center text-sm border-0 focus:ring-0 font-medium"
+                       aria-label="Quantity of {{ item.product.name }}" />
+                <button type="button"
+                        onclick="incrementQty(this)"
+                        class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors"
+                        aria-label="Increase quantity of {{ item.product.name }}">+</button>
+              </div>
+              <button type="submit" class="text-xs text-glh-blue hover:underline font-medium ml-1">Update</button>
+            </form>
+
+            <!-- Line total + remove -->
+            <div class="text-right flex-shrink-0">
+              <p class="font-bold text-glh-navy">£{{ item.line_total }}</p>
+              <form method="post" action="{% url 'orders:update_cart' pk=item.pk %}" class="mt-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="remove" />
+                <button type="submit"
+                        class="text-xs text-red-400 hover:text-red-600 hover:underline"
+                        aria-label="Remove {{ item.product.name }} from basket">Remove</button>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </section>
+
+      <!-- Order summary -->
+      <aside aria-labelledby="order-summary-heading">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sticky top-24">
+          <h2 id="order-summary-heading" class="font-heading text-xl text-glh-navy mb-5">Order Summary</h2>
+
+          <dl class="space-y-2 text-sm mb-6">
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Subtotal</dt>
+              <dd class="font-medium">£{{ cart.total }}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-gray-500">Delivery</dt>
+              <dd class="text-gray-400 text-xs mt-0.5">Calculated at checkout</dd>
+            </div>
+            {% if user.profile.get_discount_percentage > 0 %}
+              <div class="flex justify-between text-green-700">
+                <dt>Your loyalty discount</dt>
+                <dd>{{ user.profile.get_discount_percentage }}% off</dd>
+              </div>
+            {% endif %}
+            <div class="flex justify-between border-t pt-2 mt-2">
+              <dt class="font-bold text-glh-navy">Estimated Total</dt>
+              <dd class="font-bold text-glh-navy">£{{ cart.total }}</dd>
+            </div>
+          </dl>
+
+          <a href="{% url 'orders:checkout' %}"
+             class="block w-full bg-glh-green hover:bg-glh-green-light text-white text-center py-3 rounded-xl font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-green-300">
+            Proceed to Checkout
+          </a>
+          <a href="{% url 'products:product_list' %}"
+             class="block text-center text-sm text-glh-grey hover:text-glh-navy mt-3">← Continue Shopping</a>
+        </div>
+      </aside>
+    </div>
+
+  {% else %}
+    <!-- Empty basket -->
+    <div class="text-center py-24">
+      <svg class="w-24 h-24 text-gray-200 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4m1.6 8a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4z"/>
+      </svg>
+      <h2 class="font-heading text-2xl text-glh-navy mb-2">Your basket is empty</h2>
+      <p class="text-gray-500 mb-6">Add some fresh local produce to get started.</p>
+      <a href="{% url 'products:product_list' %}"
+         class="inline-block bg-glh-green hover:bg-glh-green-light text-white px-8 py-3 rounded-xl font-semibold transition-colors">
+        Shop Now
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function decrementQty(btn) {
+    const input = btn.nextElementSibling;
+    const val = parseInt(input.value);
+    if (val > 1) input.value = val - 1;
+  }
+  function incrementQty(btn) {
+    const input = btn.previousElementSibling;
+    const max = parseInt(input.max) || 999;
+    const val = parseInt(input.value);
+    if (val < max) input.value = val + 1;
+  }
+</script>
+{% endblock %}

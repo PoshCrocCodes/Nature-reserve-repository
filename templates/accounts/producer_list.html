@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Our Producers — Greenfield Local Hub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+  <div class="text-center mb-12">
+    <h1 class="font-heading text-4xl text-glh-navy mb-3">Meet Our Producers</h1>
+    <p class="text-gray-500 max-w-2xl mx-auto">
+      Every item in our shop comes from a verified local farmer or food producer. Get to know the people behind your food.
+    </p>
+  </div>
+
+  {% if producers %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% for producer in producers %}
+        <article class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden">
+          <!-- Producer image -->
+          <div class="h-48 bg-gray-100 overflow-hidden">
+            {% if producer.profile_image %}
+              {# IMAGE: Producer profile / farm image. Replace with licensed photo. #}
+              <img src="{{ producer.profile_image.url }}"
+                   alt="{{ producer.business_name }} farm"
+                   class="w-full h-full object-cover" />
+            {% else %}
+              <div class="w-full h-full bg-gradient-to-br from-glh-green to-glh-navy flex items-center justify-center">
+                <svg class="w-16 h-16 text-white opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                </svg>
+              </div>
+            {% endif %}
+          </div>
+
+          <div class="p-5">
+            <div class="flex items-start justify-between mb-2">
+              <h2 class="font-heading text-xl text-glh-navy">
+                <a href="{% url 'accounts:producer_detail' slug=producer.slug %}"
+                   class="hover:text-glh-green transition-colors">{{ producer.business_name }}</a>
+              </h2>
+              {% if producer.is_verified %}
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ml-2" title="Verified Producer">✓ Verified</span>
+              {% endif %}
+            </div>
+            <p class="text-xs text-gray-500 mb-2">📍 {{ producer.location }}</p>
+            <p class="text-xs font-medium text-glh-blue bg-blue-50 px-2 py-0.5 rounded-full w-fit mb-3">{{ producer.get_farming_method_display }}</p>
+            <p class="text-sm text-gray-600 leading-relaxed mb-4">{{ producer.description|truncatewords:20 }}</p>
+            <a href="{% url 'accounts:producer_detail' slug=producer.slug %}"
+               class="text-sm font-semibold text-glh-green hover:underline">View Producer →</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if is_paginated %}
+      <nav class="mt-10 flex justify-center gap-2" aria-label="Producers pagination">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">← Prev</a>
+        {% endif %}
+        <span class="px-4 py-2 text-sm text-gray-600" aria-current="page">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 rounded-lg border border-gray-300 text-sm hover:bg-gray-50">Next →</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+  {% else %}
+    <div class="text-center py-16 text-gray-400">
+      <p>No producers listed yet. Check back soon!</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

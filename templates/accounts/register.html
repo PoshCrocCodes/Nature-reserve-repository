@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Create Account — Greenfield Local Hub{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-glh-green-pale flex items-center justify-center py-12 px-4">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg">
+
+    <div class="text-center mb-8">
+      <div class="w-16 h-16 bg-glh-green rounded-full flex items-center justify-center mx-auto mb-4" aria-hidden="true">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+        </svg>
+      </div>
+      <h1 class="font-heading text-3xl text-glh-navy">Create Your Account</h1>
+      <p class="text-gray-500 text-sm mt-1">Join Greenfield Local Hub and start shopping locally.</p>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Name row -->
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            First Name <span class="text-red-500" aria-hidden="true">*</span>
+          </label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}
+            <p class="text-red-600 text-xs mt-1" role="alert">{{ form.first_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+            Last Name <span class="text-red-500" aria-hidden="true">*</span>
+          </label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}
+            <p class="text-red-600 text-xs mt-1" role="alert">{{ form.last_name.errors|join:", " }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% for field in form %}
+        {% if field.name not in "first_name,last_name,gdpr_consent,marketing_opt_in" %}
+          <div class="mb-4">
+            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ field.label }}
+              {% if field.field.required %}<span class="text-red-500" aria-hidden="true">*</span>{% endif %}
+            </label>
+            <input type="{{ field.field.widget.input_type|default:'text' }}"
+                   id="{{ field.id_for_label }}"
+                   name="{{ field.html_name }}"
+                   value="{{ field.value|default:'' }}"
+                   {% if field.field.required %}required{% endif %}
+                   class="w-full border {% if field.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-glh-green focus:border-transparent"
+                   aria-describedby="{% if field.help_text %}help-{{ field.html_name }}{% endif %}{% if field.errors %} error-{{ field.html_name }}{% endif %}" />
+            {% if field.help_text %}
+              <p id="help-{{ field.html_name }}" class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
+            {% endif %}
+            {% if field.errors %}
+              <p id="error-{{ field.html_name }}" class="text-red-600 text-xs mt-1" role="alert">{{ field.errors|join:", " }}</p>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <!-- GDPR consent -->
+      <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="gdpr_consent" id="{{ form.gdpr_consent.id_for_label }}"
+                 required
+                 class="mt-0.5 text-glh-green focus:ring-glh-green rounded"
+                 aria-describedby="gdpr-help" />
+          <span class="text-sm text-gray-700">
+            {{ form.gdpr_consent.label }}
+            — see our <a href="{% url 'privacy_policy' %}" class="text-glh-green underline" target="_blank" rel="noopener">Privacy Policy</a>
+            <span class="text-red-500" aria-hidden="true">*</span>
+          </span>
+        </label>
+        <p id="gdpr-help" class="text-xs text-gray-500 mt-2 ml-7">
+          Your data is stored securely and never sold. Required under UK GDPR.
+        </p>
+        {% if form.gdpr_consent.errors %}
+          <p class="text-red-600 text-xs mt-1 ml-7" role="alert">{{ form.gdpr_consent.errors|join:", " }}</p>
+        {% endif %}
+      </div>
+
+      <!-- Marketing opt-in -->
+      <div class="mb-6">
+        <label class="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" name="marketing_opt_in"
+                 class="mt-0.5 text-glh-green focus:ring-glh-green rounded" />
+          <span class="text-sm text-gray-600">{{ form.marketing_opt_in.label }}</span>
+        </label>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-glh-green hover:bg-glh-green-light text-white py-3 rounded-xl font-semibold transition-colors focus:outline-none focus:ring-4 focus:ring-green-300 text-base">
+        Create Account
+      </button>
+    </form>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      Already have an account?
+      <a href="{% url 'accounts:login' %}" class="text-glh-green font-semibold hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
